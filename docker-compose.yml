@@ -1,0 +1,44 @@
+version: '3.8'
+
+networks:
+  survey-network:
+    name: survey-network
+    driver: bridge
+
+volumes:
+  db-survey-responses:
+    name: db-survey-responses
+
+services:
+  api-survey:
+    build:
+      context: .
+      target: dev
+    container_name: api-survey
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URI=mongodb://mongo-db:27017
+      - DATABASE_NAME=surveydb
+      - DATABASE_USER=mongoadmin
+      - DATABASE_PASS=admin
+    volumes:
+      - .:/usr/node/app
+      - /usr/node/app/node_modules
+    networks:
+      - survey-network
+    depends_on:
+      - mongo-db
+
+  mongo-db:
+    image: mongo
+    volumes:
+      - db-survey-responses:/data/db
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongoadmin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    networks:
+      - survey-network
+
