@@ -63,8 +63,6 @@ export class SurveyController {
         createSurveyDto,
       );
 
-      console.log(returnCreatedSurvey);
-
       return response.status(201).send(returnCreatedSurvey);
     } catch (err) {
       if (err.message === 'Survey already exists') {
