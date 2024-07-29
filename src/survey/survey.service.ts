@@ -27,8 +27,8 @@ export class SurveyService {
         throw new Error('Survey already exists');
       }
 
-      const createdSurvey = new this.surveyModel(createSurveyDto);
-      return createdSurvey.save();
+      const createdSurvey = await this.surveyModel.create(createSurveyDto);
+      return createdSurvey;
     } catch (err) {
       throw new Error(err.message);
     }
@@ -36,22 +36,20 @@ export class SurveyService {
 
   async update(id: string, updateSurveyDto: UpdateSurveyDto): Promise<Survey> {
     try {
-      const verifyId = await this.surveyModel.findById(id).exec();
+      const verifyId = await this.surveyModel.findById(id);
 
       if (!verifyId) {
         throw new Error('object not found');
       }
 
-      return this.surveyModel
-        .findByIdAndUpdate(
-          id,
-          {
-            updated_at: Date.now(),
-            ...updateSurveyDto,
-          },
-          { new: true },
-        )
-        .exec();
+      return this.surveyModel.findByIdAndUpdate(
+        id,
+        {
+          updated_at: Date.now(),
+          ...updateSurveyDto,
+        },
+        { new: true },
+      );
     } catch (err) {
       throw new Error(err.message);
     }
@@ -60,7 +58,7 @@ export class SurveyService {
   async submitResponse(submitResponseDto: SubmitResponseDto) {
     const { survey: surveyId, responses } = submitResponseDto;
 
-    const survey = await this.surveyModel.findById(surveyId).exec();
+    const survey = await this.surveyModel.findById(surveyId);
     if (!survey) {
       throw new Error('Survey not found');
     }
@@ -74,8 +72,10 @@ export class SurveyService {
       }
     }
 
-    const response = new this.responseModel({ survey: surveyId, responses });
-    await response.save();
+    const response = await this.responseModel.create({
+      survey: surveyId,
+      responses,
+    });
     return response;
   }
 
@@ -83,39 +83,37 @@ export class SurveyService {
     audience: string,
     sortOrder: 'asc' | 'desc' = 'asc',
   ) {
-    const responses = await this.responseModel
-      .aggregate([
-        { $match: { 'responses.answer': audience } },
-        {
-          $addFields: {
-            stars: {
-              $arrayElemAt: [
-                {
-                  $filter: {
-                    input: '$responses',
-                    as: 'response',
-                    cond: {
-                      $eq: ['$$response.question', 'Quantidade de estrelas'],
-                    },
+    const responses = await this.responseModel.aggregate([
+      { $match: { 'responses.answer': audience } },
+      {
+        $addFields: {
+          stars: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: '$responses',
+                  as: 'response',
+                  cond: {
+                    $eq: ['$$response.question', 'Quantidade de estrelas'],
                   },
                 },
-                0,
-              ],
-            },
+              },
+              0,
+            ],
           },
         },
-        {
-          $sort: {
-            'stars.answer': sortOrder === 'asc' ? 1 : -1, // 'asc' para crescente, 'desc' para decrescente
-          },
+      },
+      {
+        $sort: {
+          'stars.answer': sortOrder === 'asc' ? 1 : -1, // 'asc' para crescente, 'desc' para decrescente
         },
-        {
-          $project: {
-            stars: 0,
-          },
+      },
+      {
+        $project: {
+          stars: 0,
         },
-      ])
-      .exec();
+      },
+    ]);
 
     return responses;
   }
