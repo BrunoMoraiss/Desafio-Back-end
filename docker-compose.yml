@@ -13,7 +13,7 @@ services:
   api-survey:
     build:
       context: .
-      target: dev
+      target: prod
     container_name: api-survey
     ports:
       - "3000:3000"
